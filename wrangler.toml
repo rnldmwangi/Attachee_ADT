@@ -1,0 +1,11 @@
+name = "attache-rugedo-org"
+main = "worker.js"
+compatibility_date = "2026-03-01"
+
+[site]
+bucket = "./public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "attache_db"
+database_id = "your-d1-database-id-here"

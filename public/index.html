@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rugedo PLC | ICT Attachée Diagnostic Engine</title>
+    <style>
+        :root {
+            --bg-obsidian: #000000;
+            --bg-surface: #0E0E0E;
+            --bg-card: #141414;
+            --gold-primary: #D4AF37;
+            --gold-muted: #997A15;
+            --text-main: #F5F5F7;
+            --text-muted: #8E8E93;
+            --border-gold: rgba(212, 175, 55, 0.3);
+            --border-active: #D4AF37;
+            --status-green: #30D158;
+            --status-amber: #FF9F0A;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: var(--bg-obsidian); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Top Header */
+        header { background: var(--bg-surface); border-bottom: 1px solid var(--gold-primary); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .user-identity { display: flex; align-items: center; gap: 12px; }
+        .avatar-box { font-size: 24px; cursor: pointer; background: var(--bg-card); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-gold); }
+        .username-input { background: transparent; border: none; color: var(--gold-primary); font-size: 16px; font-weight: bold; border-bottom: 1px dashed var(--gold-muted); padding: 2px 4px; }
+        .user-meta { font-size: 12px; color: var(--text-muted); }
+        .global-search { flex: 0 1 300px; padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--border-gold); border-radius: 6px; color: var(--text-main); font-size: 14px; }
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+        .btn-gold { background: var(--gold-primary); color: #000; font-weight: bold; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-gold:hover { background: #e5bf3b; }
+        .icon-btn { background: transparent; border: 1px solid var(--border-gold); color: var(--gold-primary); padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+
+        /* Sub Header / Tabs */
+        .sub-header { background: var(--bg-surface); border-bottom: 1px solid var(--border-gold); padding: 8px 24px; display: flex; justify-content: space-between; align-items: center; overflow-x: auto; }
+        .nav-tabs { display: flex; gap: 8px; }
+        .tab-btn { background: var(--bg-card); border: 1px solid var(--border-gold); color: var(--text-muted); padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+        .tab-btn.active { background: var(--gold-primary); color: #000; font-weight: bold; border-color: var(--gold-primary); }
+        .sync-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--status-green); }
+        .sync-dot { width: 8px; height: 8px; background: var(--status-green); border-radius: 50%; }
+
+        /* Main Body */
+        main { flex: 1; padding: 24px; max-width: 1200px; margin: 0 auto; width: 100%; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-gold); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        /* Dashboard / Home */
+        .readiness-gauge { font-size: 28px; font-weight: bold; color: var(--gold-primary); margin: 10px 0; }
+        
+        /* Accordion / Modules */
+        .accordion-item { background: var(--bg-surface); border: 1px solid var(--border-gold); border-radius: 6px; margin-bottom: 12px; overflow: hidden; }
+        .accordion-header { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #111; }
+        .accordion-body { padding: 18px; border-top: 1px solid var(--border-gold); display: none; background: var(--bg-card); }
+        .accordion-body.open { display: block; }
+        .rating-pills { display: flex; gap: 8px; margin: 12px 0; }
+        .pill { padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border-gold); font-size: 12px; cursor: pointer; background: #000; color: var(--text-muted); }
+        .pill.active { background: var(--gold-primary); color: #000; font-weight: bold; }
+        .quote-box { border-left: 3px solid var(--gold-primary); padding-left: 12px; font-style: italic; color: #ccc; margin: 12px 0; font-size: 13px; line-height: 1.5; }
+        .pointer-box { background: rgba(212, 175, 55, 0.05); border: 1px dashed var(--gold-muted); padding: 10px; border-radius: 4px; font-size: 13px; margin: 12px 0; }
+        textarea { width: 100%; background: #000; border: 1px solid var(--border-gold); color: #fff; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 13px; resize: vertical; min-height: 60px; }
+
+        /* Footer */
+        footer { background: var(--bg-surface); border-top: 1px solid var(--border-gold); padding: 12px 24px; text-align: center; font-size: 12px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; }
+        .footer-link { color: var(--gold-primary); cursor: pointer; text-decoration: underline; background: none; border: none; font-size: 12px; }
+
+        /* Modals & Auth Overlay */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .auth-box { background: var(--bg-card); border: 1px solid var(--gold-primary); padding: 30px; border-radius: 8px; width: 100%; max-width: 400px; }
+        .auth-box input, .auth-box select { width: 100%; padding: 10px; margin: 8px 0; background: #000; border: 1px solid var(--border-gold); color: #fff; border-radius: 4px; }
+        .hidden { display: none !important; }
+
+        /* Smart Print / PDF Stylesheet */
+        @media print {
+            header, .sub-header, .global-search, .header-actions, footer, .modal-overlay, button, textarea { display: none !important; }
+            body { background: #FFFFFF !important; color: #000000 !important; font-family: sans-serif !important; margin: 15mm; }
+            .card, .accordion-item { border: 1px solid #000 !important; background: #FFF !important; box-shadow: none !important; page-break-inside: avoid; margin-bottom: 10px; }
+            h1, h2, h3 { color: #000 !important; border-bottom: 2px solid #000 !important; }
+        }
+
+        @media(max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            header { flex-direction: column; gap: 10px; align-items: stretch; }
+            .global-search { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- AUTHENTICATION OVERLAY -->
+    <div id="authOverlay" class="modal-overlay">
+        <div class="auth-box">
+            <h2 style="color: var(--gold-primary); margin-bottom: 15px;">Rugedo Attachee Engine</h2>
+            <div id="loginForm">
+                <input type="text" id="loginUser" placeholder="Username (e.g. admin)">
+                <input type="password" id="loginPass" placeholder="Password">
+                <button class="btn-gold" style="width:100%; margin-top:10px;" onclick="handleLogin()">Sign In</button>
+                <p style="text-align:center; margin-top:15px; font-size:12px; color:var(--text-muted); cursor:pointer;" onclick="toggleAuthMode()">Need an account? Self-Signup</p>
+            </div>
+            <div id="signupForm" class="hidden">
+                <input type="text" id="suUser" placeholder="Username">
+                <input type="password" id="suPass" placeholder="Password">
+                <input type="text" id="suFirst" placeholder="First Name (Locked after)">
+                <input type="text" id="suLast" placeholder="Last Name (Locked after)">
+                <input type="email" id="suEmail" placeholder="Email (Locked after)">
+                <button class="btn-gold" style="width:100%; margin-top:10px;" onclick="handleSignup()">Submit Registration</button>
+                <p style="text-align:center; margin-top:15px; font-size:12px; color:var(--text-muted); cursor:pointer;" onclick="toggleAuthMode()">Back to Sign In</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN POPUP MODAL -->
+    <div id="adminModal" class="modal-overlay hidden">
+        <div class="auth-box" style="max-width: 600px;">
+            <h3 style="color: var(--gold-primary); margin-bottom: 10px;">Admin & Supervisor Portal</h3>
+            <div id="adminContent" style="max-height: 400px; overflow-y: auto; font-size: 13px;"></div>
+            <button class="icon-btn" style="width:100%; margin-top:15px;" onclick="document.getElementById('adminModal').classList.add('hidden')">Close Portal</button>
+        </div>
+    </div>
+
+    <!-- APP WRAPPER -->
+    <div id="appContainer" class="hidden" style="display:flex; flex-direction:column; flex:1;">
+        <!-- Top Header -->
+        <header>
+            <div class="user-identity">
+                <div class="avatar-box" id="avatarDisplay" onclick="cycleAvatar()">🤓</div>
+                <div>
+                    <input type="text" id="usernameInput" class="username-input" onchange="updateUsername(this.value)">
+                    <div class="user-meta" id="userMetaBadge">Attachée // Level 5/6 CBET</div>
+                </div>
+            </div>
+            <input type="text" class="global-search" id="globalSearch" placeholder="🔍 Search skills, tools, or notes..." oninput="filterGlobal(this.value)">
+            <div class="header-actions">
+                <button class="btn-gold" onclick="window.print()">Export PDF</button>
+                <button class="icon-btn" onclick="openMessageModal()">✉️</button>
+                <button class="icon-btn hidden" id="adminPortalBtn" onclick="openAdminPortal()">🛡️ Admin</button>
+                <button class="icon-btn" onclick="handleLogout()" style="border-color:#ff453a; color:#ff453a;">Logout</button>
+            </div>
+        </header>
+
+        <!-- Sub Header Tabs -->
+        <div class="sub-header">
+            <div class="nav-tabs">
+                <button class="tab-btn active" onclick="switchTab('home')">🏠 Home Dashboard</button>
+                <button class="tab-btn" onclick="switchTab('networking')">🌐 Networking</button>
+                <button class="tab-btn" onclick="switchTab('business_systems')">💻 Business Systems</button>
+                <button class="tab-btn" onclick="switchTab('help_desk')">🎧 Help Desk</button>
+                <button class="tab-btn" onclick="switchTab('workshop')">🛠️ Workshop</button>
+            </div>
+            <div class="sync-status">
+                <div class="sync-dot"></div> Edge Synced (D1)
+            </div>
+        </div>
+
+        <!-- Main Body Content -->
+        <main>
+            <!-- HOME TAB -->
+            <div id="tab-home" class="tab-content">
+                <div class="grid-2">
+                    <div class="card">
+                        <h3 style="color: var(--gold-primary);">Institutional Readiness Index</h3>
+                        <div class="readiness-gauge" id="readinessScore">0.0%</div>
+                        <p style="font-size:13px; color:var(--text-muted);">Calculated from verified skill mastery levels and logged industrial hot notes.</p>
+                    </div>
+                    <div class="card">
+                        <h3 style="color: var(--gold-primary);">User Profile Overview</h3>
+                        <p id="profileSummary" style="font-size:14px; margin-top:10px; line-height: 1.6;"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULE TABS -->
+            <div id="tab-networking" class="tab-content hidden"></div>
+            <div id="tab-business_systems" class="tab-content hidden"></div>
+            <div id="tab-help_desk" class="tab-content hidden"></div>
+            <div id="tab-workshop" class="tab-content hidden"></div>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <span>Developed by Mwangi Wanjau</span>
+            <button class="footer-link" onclick="openMessageModal()">Send Message to Admin ✉️</button>
+        </footer>
+    </div>
+
+    <!-- MESSAGE MODAL -->
+    <div id="msgModal" class="modal-overlay hidden">
+        <div class="auth-box">
+            <h3 style="color: var(--gold-primary); margin-bottom: 10px;">Message Administrator</h3>
+            <textarea id="adminMsgText" placeholder="Type your inquiry or report here..."></textarea>
+            <button class="btn-gold" style="width:100%; margin-top:10px;" onclick="sendAdminMessage()">Send Inquiry</button>
+            <button class="icon-btn" style="width:100%; margin-top:5px;" onclick="document.getElementById('msgModal').classList.add('hidden')">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let appData = { competencies: [], progress: [], hotNotes: [], messages: [] };
+        const avatars = ['🤓', '💻', '⚡', '🛠️', '🛡️', '🚀'];
+
+        async function handleLogin() {
+            const u = document.getElementById('loginUser').value;
+            const p = document.getElementById('loginPass').value;
+            const res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: u, password: p}) });
+            const data = await res.json();
+            if (data.success) {
+                currentUser = data.user;
+                initApp();
+            } else {
+                alert(data.error || 'Login failed');
+            }
+        }
+
+        async function handleSignup() {
+            const payload = {
+                username: document.getElementById('suUser').value,
+                password: document.getElementById('suPass').value,
+                first_name: document.getElementById('suFirst').value,
+                last_name: document.getElementById('suLast').value,
+                email: document.getElementById('suEmail').value
+            };
+            const res = await fetch('/api/signup', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+            const data = await res.json();
+            alert(data.message || data.error);
+            if (data.success) toggleAuthMode();
+        }
+
+        function toggleAuthMode() {
+            document.getElementById('loginForm').classList.toggle('hidden');
+            document.getElementById('signupForm').classList.toggle('hidden');
+        }
+
+        async function initApp() {
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+            
+            document.getElementById('usernameInput').value = currentUser.username;
+            document.getElementById('avatarDisplay').innerText = currentUser.avatar_emoji || '🤓';
+            document.getElementById('userMetaBadge').innerText = `${currentUser.first_name} ${currentUser.last_name} // ${currentUser.role.toUpperCase()}`;
+            
+            if (currentUser.role === 'admin') {
+                document.getElementById('adminPortalBtn').classList.remove('hidden');
+            }
+
+            await loadAppData();
+        }
+
+        async function loadAppData() {
+            const res = await fetch(`/api/data/${currentUser.id}`);
+            appData = await res.json();
+            renderModules();
+            renderDashboard();
+            checkAdminMessages();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            event.target.classList.add('active');
+        }
+
+        function renderModules() {
+            const modules = ['networking', 'business_systems', 'help_desk', 'workshop'];
+            modules.forEach(mod => {
+                const container = document.getElementById(`tab-${mod}`);
+                const comps = appData.competencies.filter(c => c.module_name === mod);
+                
+                container.innerHTML = `<h2 style="color:var(--gold-primary); margin-bottom:15px; text-transform:capitalize;">${mod.replace('_', ' ')} Module</h2>` + 
+                    comps.map(c => {
+                        const prog = appData.progress.find(p => p.competency_id === c.id) || {rating: 0, mastered: 0};
+                        return `
+                        <div class="accordion-item">
+                            <div class="accordion-header" onclick="toggleAccordion(this)">
+                                <span><strong>${c.category}:</strong> ${c.skill_title}</span>
+                                <span>${prog.mastered ? '✅ Mastered' : '⏳ In Progress'}</span>
+                            </div>
+                            <div class="accordion-body">
+                                <div class="pointer-box"><strong>Growth Pointer:</strong> ${c.growth_pointer}</div>
+                                <div class="quote-box">" ${c.architecture_note} "</div>
+                                <div style="font-size:12px; margin-top:10px;">Skill Competency Level:</div>
+                                <div class="rating-pills">
+                                    <div class="pill ${prog.rating===0?'active':''}" onclick="updateProgress('${c.id}', 0, ${prog.mastered})">0: Unexposed</div>
+                                    <div class="pill ${prog.rating===1?'active':''}" onclick="updateProgress('${c.id}', 1, ${prog.mastered})">1: Observing</div>
+                                    <div class="pill ${prog.rating===2?'active':''}" onclick="updateProgress('${c.id}', 2, ${prog.mastered})">2: Practicing</div>
+                                    <div class="pill ${prog.rating===3?'active':''}" onclick="updateProgress('${c.id}', 3, ${prog.mastered})">3: Autonomous</div>
+                                </div>
+                                <label style="font-size:12px; display:flex; align-items:center; gap:6px; margin-top:10px;">
+                                    <input type="checkbox" ${prog.mastered?'checked':''} onchange="updateProgress('${c.id}', ${prog.rating}, this.checked)"> Mark as Fully Mastered
+                                </label>
+                                <textarea placeholder="Log industrial insight or operational hot note here..." onchange="saveHotNote('${c.id}', this.value)"></textarea>
+                            </div>
+                        </div>`;
+                    }).join('');
+            });
+        }
+
+        function toggleAccordion(header) {
+            const body = header.nextElementSibling;
+            body.classList.toggle('open');
+        }
+
+        async function updateProgress(compId, rating, mastered) {
+            await fetch('/api/progress', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: currentUser.id, competency_id: compId, rating, mastered: mastered ? 1 : 0 })
+            });
+            await loadAppData();
+        }
+
+        async function saveHotNote(compId, text) {
+            await fetch('/api/hotnote', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: currentUser.id, competency_id: compId, note_content: text })
+            });
+            alert('Hot Note logged securely.');
+        }
+
+        function renderDashboard() {
+            const total = appData.competencies.length || 1;
+            const masteredCount = appData.progress.filter(p => p.mastered).length;
+            const score = ((masteredCount / total) * 100).toFixed(1);
+            document.getElementById('readinessScore').innerText = score + '%';
+            document.getElementById('profileSummary').innerHTML = `
+                <strong>Full Name:</strong> ${currentUser.first_name} ${currentUser.last_name}<br>
+                <strong>Email:</strong> ${currentUser.email}<br>
+                <strong>Account Status:</strong> <span style="color:var(--status-green);">${currentUser.status}</span><br>
+                <strong>Logged Insights:</strong> ${appData.hotNotes.length} notes recorded.
+            `;
+        }
+
+        async function openAdminPortal() {
+            const res = await fetch('/api/admin');
+            const data = await res.json();
+            const container = document.getElementById('adminContent');
+            container.innerHTML = '<h4>User Roster & Pending Approvals</h4>' + 
+                data.users.map(u => `
+                    <div style="border-bottom:1px solid #333; padding:8px 0; display:flex; justify-content:space-between; align-items:center;">
+                        <div><strong>${u.username}</strong> (${u.first_name} ${u.last_name}) - [${u.status}]</div>
+                        <div>
+                            ${u.status === 'pending' ? `<button class="btn-gold" onclick="adminAction('approve', '${u.id}')">Approve</button>` : ''}
+                            <button class="icon-btn" style="color:#ff453a;" onclick="adminAction('delete', '${u.id}')">Delete</button>
+                        </div>
+                    </div>
+                `).join('') + '<h4 style="margin-top:15px;">Inbox Messages</h4>' +
+                data.messages.map(m => `
+                    <div style="border-bottom:1px solid #333; padding:8px 0;">
+                        <small style="color:var(--gold-primary);">${m.username} (${m.sender_type}):</small>
+                        <p>${m.message_text}</p>
+                        <input type="text" id="reply_${m.user_id}" placeholder="Type reply..." style="padding:4px; font-size:12px; width:70%;">
+                        <button class="btn-gold" onclick="adminReply('${m.user_id}')">Reply</button>
+                    </div>
+                `).join('');
+            document.getElementById('adminModal').classList.remove('hidden');
+        }
+
+        async function adminAction(action, userId) {
+            await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action, user_id: userId}) });
+            openAdminPortal();
+        }
+
+        async function adminReply(userId) {
+            const text = document.getElementById(`reply_${userId}`).value;
+            await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'reply', user_id: userId, message_text: text}) });
+            alert('Reply sent.');
+            openAdminPortal();
+        }
+
+        function openMessageModal() { document.getElementById('msgModal').classList.remove('hidden'); }
+        async function sendAdminMessage() {
+            const text = document.getElementById('adminMsgText').value;
+            await fetch('/api/admin/action', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'reply', user_id: currentUser.id, message_text: text}) });
+            alert('Inquiry dispatched to administrator inbox.');
+            document.getElementById('msgModal').classList.add('hidden');
+        }
+
+        function checkAdminMessages() {
+            const unreadAdminMsgs = appData.messages.filter(m => m.sender_type === 'admin' && !m.is_read);
+            if (unreadAdminMsgs.length > 0) {
+                alert("🔔 ADMIN REPLY RECEIVED:\n\n" + unreadAdminMsgs[unreadAdminMsgs.length - 1].message_text);
+            }
+        }
+
+        function cycleAvatar() {
+            let currIdx = avatars.indexOf(currentUser.avatar_emoji || '🤓');
+            currIdx = (currIdx + 1) % avatars.length;
+            currentUser.avatar_emoji = avatars[currIdx];
+            document.getElementById('avatarDisplay').innerText = currentUser.avatar_emoji;
+        }
+
+        function filterGlobal(query) {
+            const q = query.toLowerCase();
+            document.querySelectorAll('.accordion-item').forEach(item => {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(q) ? 'block' : 'none';
+            });
+        }
+
+        function handleLogout() { location.reload(); }
+    </script>
+</body>
+</html>
