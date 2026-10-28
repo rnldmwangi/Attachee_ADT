@@ -8,4 +8,4 @@ bucket = "./public"
 [[d1_databases]]
 binding = "DB"
 database_name = "attache_db"
-database_id = "your-d1-database-id-here"
+database_id = "98b7a217-c656-4701-ac4c-856a79852f9b"
